@@ -1,0 +1,11 @@
+[MASTER]
+disable=
+    C0114, # missing-module-docstring
+    C0103, # constant-case
+    C0116, # method-docstring
+
+[TYPECHECK]
+ignored-classes=Namespace
+
+[FORMAT]
+max-line-length=180
