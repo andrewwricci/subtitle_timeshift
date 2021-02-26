@@ -82,9 +82,8 @@ def main():
         adjusted_index = 1
 
         first_sub_found = False
-        current_time = datetime.timedelta(seconds=0)
-        previous_time = datetime.timedelta(seconds=0)
         total_commerical_time = datetime.timedelta(seconds=0)
+        previous_time = datetime.timedelta(seconds=0)
         previous_sub = srt.Subtitle(index=0, start=0, end=0, content="No first subtitle detected")
 
         for sub in parsed_subtitles:
