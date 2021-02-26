@@ -62,10 +62,7 @@ def main():
     first_commercial_duration = datetime.timedelta(seconds=int(args.first_commercial_duration))
     following_commercial_duration = datetime.timedelta(seconds=int(args.following_commercial_duration))
 
-    if args.auto_adjust_file == "true":
-        auto_adjust_subs = True
-    else:
-        auto_adjust_subs = False
+    auto_adjust_subs = bool(args.auto_adjust_file)
 
     if args.original_file == "ALL":
         original_file_value = os.path.dirname(os.path.realpath(__file__))
