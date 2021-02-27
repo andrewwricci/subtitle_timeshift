@@ -13,11 +13,11 @@ def get_subtitle_files_list(original_file_location):
                 original_files.append(directory_name + "/" + file)
     else:
         original_files.append(original_file_location)
-   
+
     if not original_files:
         raise ValueError("No valid .srt files found at {original_file}".format(original_file=original_file_location))
-    else:
-        return original_files
+
+    return original_files
 
 def parse_subtitle_file(original_file_location):
     with open(original_file_location, 'r') as sub_file:
@@ -26,14 +26,20 @@ def parse_subtitle_file(original_file_location):
     parsed_subtitles_text = list(srt.parse(sub_file_text))
     return parsed_subtitles_text
 
-def adjust_total_commerical_duration(current_sub, prior_sub, commerical_duration, total_commercial_time, auto_adjust):
-    print("Commerical period detected between the following subtitles:")
-    print("First subtitle - Index: {index} Timestamp: {timestamp} Content: {content}".format(index=prior_sub.index,
-                                                                                             timestamp=prior_sub.start - total_commercial_time,
-                                                                                             content=prior_sub.content))
-    print("Second subtitle - Index: {index} Timestamp: {timestamp} Content: {content}".format(index=current_sub.index,
-                                                                                             timestamp=current_sub.start - total_commercial_time,
-                                                                                             content=current_sub.content))
+def adjust_total_commerical_duration(current_sub, prior_sub, commerical_duration, total_commercial_time, auto_adjust, first_sub):
+    if first_sub:
+        print("Detected first subtitle - Index: {index} Timestamp: {timestamp} Content: {content}".format(index=current_sub.index,
+                                                                                                         timestamp=current_sub.start,
+                                                                                                         content=current_sub.content))
+        print("All prior subtitles will be removed")
+    else:
+        print("Commerical period detected between the following subtitles:")
+        print("First subtitle - Index: {index} Timestamp: {timestamp} Content: {content}".format(index=prior_sub.index,
+                                                                                                timestamp=prior_sub.start - total_commercial_time,
+                                                                                                content=prior_sub.content))
+        print("Second subtitle - Index: {index} Timestamp: {timestamp} Content: {content}".format(index=current_sub.index,
+                                                                                                timestamp=current_sub.start - total_commercial_time,
+                                                                                                content=current_sub.content))
     if auto_adjust is True:
         total_commercial_time += commerical_duration
     else:
@@ -41,7 +47,7 @@ def adjust_total_commerical_duration(current_sub, prior_sub, commerical_duration
         commerical_duration = datetime.timedelta(seconds=int(seconds_input))
         total_commercial_time += commerical_duration
     print("All remaining subtitles moved -{commerical_duration}".format(commerical_duration=commerical_duration))
-       
+
     return total_commercial_time
 
 def main():
@@ -87,12 +93,14 @@ def main():
             current_time = sub.start
 
             if current_time > first_commercial_duration and first_sub_found is False:
-                total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, first_commercial_duration, 
-                                                                         total_commerical_time, True)
+                first_subtitle = True
+                total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, first_commercial_duration,
+                                                                         total_commerical_time, True, first_subtitle)
                 first_sub_found = True
             elif current_time - previous_time > following_commercial_duration:
-                total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, following_commercial_duration, 
-                                                                         total_commerical_time, auto_adjust_subs)
+                first_subtitle = False
+                total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, following_commercial_duration,
+                                                                         total_commerical_time, auto_adjust_subs, first_subtitle)
 
             if first_sub_found is True:
                 adjusted_subtitles.append(srt.Subtitle(index=adjusted_index, start=sub.start - total_commerical_time,
