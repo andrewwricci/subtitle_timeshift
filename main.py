@@ -3,6 +3,13 @@ import datetime
 import os
 import srt
 
+class Subtitle:
+    def __init__(self):
+        self.index = 1
+        self.subtitles = []
+        self.first_sub_found = False
+        self.total_commerical_time = datetime.timedelta(seconds=0)
+
 def get_subtitle_files_list(original_file_location):
     original_files = []
 
@@ -54,8 +61,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--original_file', required=True,
                         help='Original file(s) to edit. Use folder name (or ALL for current folder) to include all files in folder')
-    parser.add_argument('-a', '--adjusted_file_suffix', required=False,
-                        help='New file suffix for adjusted files. Leave blank to overwrite originals')
+    parser.add_argument('-a', '--new_file_suffix', required=False,
+                        help='New file suffix for edited files. Leave blank to overwrite originals')
     parser.add_argument('-first', '--first_commercial_duration', required=True,
                         help='Length of expected first commerical break in seconds. Will remove all subtitles before this value. Set to 0 if no initial commercial expected.')
     parser.add_argument('-following', '--following_commercial_duration', required=True,
@@ -78,45 +85,42 @@ def main():
     original_file_list = get_subtitle_files_list(original_file_value)
 
     for original_file in original_file_list:
-        print("Beginning adjustment of file {file}".format(file=original_file))
+        print("Beginning analysis of file {file}".format(file=original_file))
         parsed_subtitles = parse_subtitle_file(original_file)
 
-        adjusted_subtitles = []
-        adjusted_index = 1
+        new_subtitle = Subtitle()
 
-        first_sub_found = False
-        total_commerical_time = datetime.timedelta(seconds=0)
         previous_time = datetime.timedelta(seconds=0)
         previous_sub = srt.Subtitle(index=0, start=0, end=0, content="No first subtitle detected")
 
         for sub in parsed_subtitles:
             current_time = sub.start
 
-            if current_time > first_commercial_duration and first_sub_found is False:
+            if current_time > first_commercial_duration and new_subtitle.first_sub_found is False:
                 first_subtitle = True
-                total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, first_commercial_duration,
-                                                                         total_commerical_time, True, first_subtitle)
-                first_sub_found = True
+                new_subtitle.total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, first_commercial_duration,
+                                                                         new_subtitle.total_commerical_time, True, first_subtitle)
+                new_subtitle.first_sub_found = True
             elif current_time - previous_time > following_commercial_duration:
                 first_subtitle = False
-                total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, following_commercial_duration,
-                                                                         total_commerical_time, auto_adjust_subs, first_subtitle)
+                new_subtitle.total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, following_commercial_duration,
+                                                                         new_subtitle.total_commerical_time, auto_adjust_subs, first_subtitle)
 
-            if first_sub_found is True:
-                adjusted_subtitles.append(srt.Subtitle(index=adjusted_index, start=sub.start - total_commerical_time,
-                                                       end=sub.end - total_commerical_time, content=sub.content))
-                adjusted_index += 1
+            if new_subtitle.first_sub_found is True:
+                new_subtitle.subtitles.append(srt.Subtitle(index=new_subtitle.index, start=sub.start - new_subtitle.total_commerical_time,
+                                                       end=sub.end - new_subtitle.total_commerical_time, content=sub.content))
+                new_subtitle.index += 1
 
             previous_time = current_time
             previous_sub = sub
 
-        if args.adjusted_file_suffix:
+        if args.new_file_suffix:
             original_file_name_base = original_file.split('.srt')[0]
-            final_file_name = original_file_name_base + args.adjusted_file_suffix + '.srt'
+            final_file_name = original_file_name_base + args.new_file_suffix + '.srt'
         else:
             final_file_name = original_file
         with open(final_file_name, 'w') as new_sub_file:
-            new_sub_file.write(srt.compose(adjusted_subtitles))
+            new_sub_file.write(srt.compose(new_subtitle.subtitles))
 
 if __name__ == '__main__':
     main()

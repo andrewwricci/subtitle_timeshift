@@ -3,6 +3,7 @@ disable=
     C0114, # missing-module-docstring
     C0103, # constant-case
     C0116, # method-docstring
+    C0115, # class-docstring
 
 [TYPECHECK]
 ignored-classes=Namespace
