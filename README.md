@@ -10,7 +10,12 @@ the commercial-less show that you've downloaded.
 This tool allows you to, either manually or automatically, remove the commerical break 
 gaps from the subtitle files.
 
-Here are some execution examples:
+## Dependency Install
+```
+pip3 install -r requirements.txt
+```
+
+## Execution Examples
 
 Automatically adjust one file, adding new suffix "fix"\
 Starting commerical break 30 seconds, all other commerical breaks 120 seconds
@@ -32,7 +37,12 @@ python3 main.py -o ALL -first 0 -following 90
 
 このツールで、自動でも手動でも、コマーシャルの時間を字幕ファイルから除けます。
 
-実行の例は以下です：
+## 依存関係をインストール
+```
+pip3 install -r requirements.txt
+```
+
+## 実行の例
 
 自動的に一つのファイルを編集して、「fix」のサフィックスを追加します。\
 番組の前のコマーシャルは30秒、他は120秒です。
