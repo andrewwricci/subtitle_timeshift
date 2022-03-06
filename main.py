@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import json
 import os
 import srt
 
@@ -9,6 +10,10 @@ class Subtitle:
         self.subtitles = []
         self.first_sub_found = False
         self.total_commerical_time = datetime.timedelta(seconds=0)
+
+# class Commercial_Break_Setting:
+#     def __init__(self):
+#         self.index = 
 
 def get_subtitle_files_list(original_file_location):
     original_files = []
@@ -63,17 +68,16 @@ def main():
                         help='Original file(s) to edit. Use folder name (or ALL for current folder) to include all files in folder')
     parser.add_argument('-a', '--new_file_suffix', required=False,
                         help='New file suffix for edited files. Leave blank to overwrite originals')
-    parser.add_argument('-first', '--first_commercial_duration', required=True,
+    parser.add_argument('-first', '--first_commercial_duration', required=False,
                         help='Length of expected first commerical break in seconds. Will remove all subtitles before this value. Set to 0 if no initial commercial expected.')
-    parser.add_argument('-following', '--following_commercial_duration', required=True,
+    parser.add_argument('-following', '--following_commercial_duration', required=False,
                         help='Length of expected other commerical breaks in seconds. If setting manually, set this to value less than or equal to expected breaks.')
-    parser.add_argument('-auto', '--auto_adjust_file', required=False,
+    parser.add_argument('-json', '--json_break_file', required=False,
+                        help='File containing breaks in json format. See example.json file for formatting')
+    parser.add_argument('-auto', '--auto_adjust_file', required=False, action=argparse.BooleanOptionalAction,
                         help='Controls whether script will auto-adjust times based on inputted duration or allow user control')
 
     args = parser.parse_args()
-
-    first_commercial_duration = datetime.timedelta(seconds=int(args.first_commercial_duration))
-    following_commercial_duration = datetime.timedelta(seconds=int(args.following_commercial_duration))
 
     auto_adjust_subs = bool(args.auto_adjust_file)
 
@@ -85,6 +89,22 @@ def main():
     original_file_list = get_subtitle_files_list(original_file_value)
 
     for original_file in original_file_list:
+        if args.first_commercial_duration and args.following_commercial_duration:
+            first_commercial_duration = int(args.first_commercial_duration)
+            following_commercial_string_list = args.following_commercial_duration.split(",")
+            following_commercial_duration = [int(i) for i in following_commercial_string_list]
+            commerical_breaks_definition = {
+                "*": {
+                    "first": first_commercial_duration,
+                    "following": following_commercial_duration
+                }
+            }
+        elif args.json_break_file:
+            json_file = open(args.json_break_file)
+            commerical_breaks_definition = json.load(json_file)
+        else:
+            raise ValueError("Please set commerical durations in either json or script arguments")
+
         print("Beginning analysis of file {file}".format(file=original_file))
         parsed_subtitles = parse_subtitle_file(original_file)
 
