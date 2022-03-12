@@ -1,0 +1,10 @@
+{
+    "*": {
+        "first": 31, 
+        "following": [120]
+    },
+    "subtitle10.srt": {
+        "first": 15,
+        "following": [90, 120, 90, 150]
+    }
+}
