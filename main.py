@@ -11,10 +11,6 @@ class Subtitle:
         self.first_sub_found = False
         self.total_commerical_time = datetime.timedelta(seconds=0)
 
-# class Commercial_Break_Setting:
-#     def __init__(self):
-#         self.index = 
-
 def get_subtitle_files_list(original_file_location):
     original_files = []
 
@@ -90,20 +86,26 @@ def main():
 
     for original_file in original_file_list:
         if args.first_commercial_duration and args.following_commercial_duration:
-            first_commercial_duration = int(args.first_commercial_duration)
+            first_commercial_duration = datetime.timedelta(seconds=int(args.first_commercial_duration))
             following_commercial_string_list = args.following_commercial_duration.split(",")
-            following_commercial_duration = [int(i) for i in following_commercial_string_list]
-            commerical_breaks_definition = {
-                "*": {
-                    "first": first_commercial_duration,
-                    "following": following_commercial_duration
-                }
-            }
+            following_commercial_duration = [datetime.timedelta(seconds=int(i)) for i in following_commercial_string_list]
         elif args.json_break_file:
             json_file = open(args.json_break_file)
-            commerical_breaks_definition = json.load(json_file)
+            commercial_breaks_definition = json.load(json_file)
+            file_name = original_file.split("/")[-1]
+            file_definition = commercial_breaks_definition.get(file_name, None)
+            if file_definition:
+                first_commercial_duration = datetime.timedelta(seconds=int(file_definition["first"]))
+                following_commercial_int_list = file_definition["following"]
+            else:
+                first_commercial_duration = datetime.timedelta(seconds=int(commercial_breaks_definition["*"]["first"]))
+                following_commercial_int_list = commercial_breaks_definition["*"]["following"]
+            following_commercial_duration = [datetime.timedelta(seconds=i) for i in following_commercial_int_list]
         else:
             raise ValueError("Please set commerical durations in either json or script arguments")
+
+        following_commercial_position = 0
+        following_commercial_final_position = len(following_commercial_duration) - 1
 
         print("Beginning analysis of file {file}".format(file=original_file))
         parsed_subtitles = parse_subtitle_file(original_file)
@@ -115,16 +117,19 @@ def main():
 
         for sub in parsed_subtitles:
             current_time = sub.start
+            following_commercial_duration_value = following_commercial_duration[following_commercial_position]
 
             if current_time > first_commercial_duration and new_subtitle.first_sub_found is False:
                 first_subtitle = True
                 new_subtitle.total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, first_commercial_duration,
                                                                          new_subtitle.total_commerical_time, True, first_subtitle)
                 new_subtitle.first_sub_found = True
-            elif current_time - previous_time > following_commercial_duration:
+            elif current_time - previous_time > following_commercial_duration_value:
                 first_subtitle = False
-                new_subtitle.total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, following_commercial_duration,
+                new_subtitle.total_commerical_time = adjust_total_commerical_duration(sub, previous_sub, following_commercial_duration_value,
                                                                          new_subtitle.total_commerical_time, auto_adjust_subs, first_subtitle)
+                if following_commercial_position < following_commercial_final_position:
+                    following_commercial_position += 1
 
             if new_subtitle.first_sub_found is True:
                 new_subtitle.subtitles.append(srt.Subtitle(index=new_subtitle.index, start=sub.start - new_subtitle.total_commerical_time,
